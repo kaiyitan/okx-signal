@@ -1,0 +1,10 @@
+version: "3.9"
+
+services:
+  worker:
+    environment:
+      - REDIS_HOST=redis
+
+  api:
+    environment:
+      - REDIS_HOST=redis
