@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -7,6 +7,7 @@ class Candle:
     high: float
     low: float
     close: float
+    vol: float = field(default=0.0)
 
 
 def is_hammer(c: Candle) -> bool:
@@ -30,9 +31,23 @@ def is_bullish_engulfing(prev: Candle, curr: Candle) -> bool:
     return curr.open <= prev.close and curr.close >= prev.open
 
 
-def detect_pattern(prev: Candle | None, curr: Candle) -> str | None:
+def is_volume_surge(curr: Candle, avg_vols: list[float]) -> bool:
+    if not avg_vols or curr.vol == 0:
+        return False
+    avg = sum(avg_vols) / len(avg_vols)
+    return avg > 0 and curr.vol > avg * 1.5 and curr.close > curr.open
+
+
+def detect_pattern(
+    prev: Candle | None,
+    curr: Candle,
+    avg_vols: list[float] | None = None,
+) -> list[str]:
+    patterns = []
     if is_hammer(curr):
-        return "hammer"
+        patterns.append("hammer")
     if prev and is_bullish_engulfing(prev, curr):
-        return "bullish_engulfing"
-    return None
+        patterns.append("bullish_engulfing")
+    if avg_vols and is_volume_surge(curr, avg_vols):
+        patterns.append("volume_surge")
+    return patterns

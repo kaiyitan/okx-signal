@@ -45,13 +45,18 @@ async def _bootstrap_symbol(instId: str, session: aiohttp.ClientSession):
     candles_asc = list(reversed(candles))
     closes = [float(c[4]) for c in candles_asc]
 
-    ema20 = calculate_ema(closes)
-    if ema20:
-        await redis_client.set_ema20(instId, ema20)
+    for period, setter in [
+        (20, redis_client.set_ema20),
+        (25, redis_client.set_ema25),
+        (50, redis_client.set_ema50),
+    ]:
+        ema = calculate_ema(closes, period)
+        if ema:
+            await setter(instId, ema)
 
     await redis_client.set_daily_close(instId, closes[-1])
 
-    for c in candles_asc[-10:]:
+    for c in candles_asc[-20:]:
         await redis_client.push_daily_candle(instId, _parse_candle(c))
 
 

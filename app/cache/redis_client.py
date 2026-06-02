@@ -29,6 +29,28 @@ async def get_ema20(instId: str) -> float | None:
     return float(val) if val else None
 
 
+async def set_ema25(instId: str, value: float):
+    r = await get_redis()
+    await r.set(f"ema25:{instId}", value)
+
+
+async def get_ema25(instId: str) -> float | None:
+    r = await get_redis()
+    val = await r.get(f"ema25:{instId}")
+    return float(val) if val else None
+
+
+async def set_ema50(instId: str, value: float):
+    r = await get_redis()
+    await r.set(f"ema50:{instId}", value)
+
+
+async def get_ema50(instId: str) -> float | None:
+    r = await get_redis()
+    val = await r.get(f"ema50:{instId}")
+    return float(val) if val else None
+
+
 async def set_daily_close(instId: str, value: float):
     r = await get_redis()
     await r.set(f"daily_close:{instId}", value)
@@ -44,7 +66,7 @@ async def push_daily_candle(instId: str, candle: dict):
     r = await get_redis()
     key = f"daily_candles:{instId}"
     await r.lpush(key, json.dumps(candle))
-    await r.ltrim(key, 0, 9)  # keep last 10
+    await r.ltrim(key, 0, 19)  # keep last 20 for RSI(14)
 
 
 async def get_daily_candles(instId: str) -> list[dict]:
@@ -94,6 +116,19 @@ async def get_prev_candle(instId: str, timeframe: str) -> dict | None:
     r = await get_redis()
     val = await r.get(f"prev_candle:{timeframe}:{instId}")
     return json.loads(val) if val else None
+
+
+async def push_intraday_vol(instId: str, timeframe: str, vol: float):
+    r = await get_redis()
+    key = f"vol:{timeframe}:{instId}"
+    await r.lpush(key, vol)
+    await r.ltrim(key, 0, 19)  # keep last 20 bars
+
+
+async def get_intraday_vols(instId: str, timeframe: str) -> list[float]:
+    r = await get_redis()
+    raw = await r.lrange(f"vol:{timeframe}:{instId}", 0, -1)
+    return [float(v) for v in raw]
 
 
 async def cache_raw_response(key: str, data: dict | list):
